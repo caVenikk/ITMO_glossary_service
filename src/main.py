@@ -11,7 +11,12 @@ from routes import glossary_router
 logger = getLogger(__name__)
 settings = get_settings()
 
-app = FastAPI(title="Glossary API", docs_url="/api/docs")
+app = FastAPI(
+    title="Glossary API",
+    root_path="/api",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
 
 
 @app.on_event("startup")
@@ -26,4 +31,4 @@ async def load_initial_data() -> None:
             logger.info("Initial data load completed successfully!")
 
 
-app.include_router(glossary_router, prefix="/glossary")
+app.include_router(glossary_router)
