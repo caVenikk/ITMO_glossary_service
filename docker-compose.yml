@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  alembic:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./src:/app/src
+    env_file:
+      - .env
+    command: >
+      sh -c "alembic upgrade head &&
+             echo 'MIGRATION_STATUS=success' > /tmp/migration_status &&
+             tail -f /dev/null"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "test -f /tmp/migration_status && grep -q 'MIGRATION_STATUS=success' /tmp/migration_status"]
+      interval: 2s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    volumes:
+      - ./src:/app/src
+    env_file:
+      - .env
+    environment:
+      - HOST=${HOST:-0.0.0.0}
+      - PORT=${PORT:-8000}
+      - DATABASE_URL=${DATABASE_URL}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DEBUG=${DEBUG:-True}
+    depends_on:
+      alembic:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-8000}/api/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  src:
